@@ -1,0 +1,1 @@
+/usr/lib64/ccache/c++ -O3 -DNDEBUG CMakeFiles/stream_mode_example.dir/stream_mode_example.cpp.o -o stream_mode_example  -leino_compose -leino_schema

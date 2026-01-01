@@ -1,0 +1,2 @@
+add_executable(graph_output_stream_simple graph_output_stream_simple.cpp)
+target_include_directories(graph_output_stream_simple PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../include ${CMAKE_CURRENT_SOURCE_DIR}/../third_party)

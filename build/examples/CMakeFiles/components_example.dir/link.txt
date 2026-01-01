@@ -1,0 +1,1 @@
+/usr/lib64/ccache/c++ -O3 -DNDEBUG CMakeFiles/components_example.dir/components_example.cpp.o -o components_example  -leino_components -leino_compose -leino_schema

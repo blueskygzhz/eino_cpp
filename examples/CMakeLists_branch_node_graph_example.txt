@@ -1,0 +1,4 @@
+
+# Branch Node Graph Example
+add_executable(branch_node_graph_example branch_node_graph_example.cpp)
+target_link_libraries(branch_node_graph_example PRIVATE eino_cpp)

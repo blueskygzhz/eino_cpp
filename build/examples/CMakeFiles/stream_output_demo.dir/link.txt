@@ -1,0 +1,1 @@
+/usr/lib64/ccache/c++ -O3 -DNDEBUG CMakeFiles/stream_output_demo.dir/stream_output_demo.cpp.o -o stream_output_demo
