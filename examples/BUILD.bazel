@@ -1,0 +1,282 @@
+# Copyright 2025 CloudWeGo Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+package(default_visibility = ["//visibility:private"])
+
+# Common dependencies for header-only examples
+_HEADER_ONLY_DEPS = [
+    "//include/eino:compose_hdrs",
+    "//include/eino:schema_hdrs",
+    "//include:nlohmann_json",
+]
+
+# ============================================================================
+# Basic examples (header-only, no library linking needed)
+# ============================================================================
+
+cc_binary(
+    name = "basic_chain_example",
+    srcs = ["basic_chain_example.cpp"],
+    deps = _HEADER_ONLY_DEPS,
+)
+
+cc_binary(
+    name = "simple_graph_example",
+    srcs = ["simple_graph_example.cpp"],
+    deps = _HEADER_ONLY_DEPS,
+)
+
+cc_binary(
+    name = "graph_run_example",
+    srcs = ["graph_run_example.cpp"],
+    deps = _HEADER_ONLY_DEPS,
+)
+
+cc_binary(
+    name = "dag_compose_example",
+    srcs = ["dag_compose_example.cpp"],
+    deps = _HEADER_ONLY_DEPS,
+)
+
+cc_binary(
+    name = "stream_mode_simple",
+    srcs = ["stream_mode_simple.cpp"],
+    deps = _HEADER_ONLY_DEPS,
+)
+
+cc_binary(
+    name = "stream_output_demo",
+    srcs = ["stream_output_demo.cpp"],
+    deps = _HEADER_ONLY_DEPS,
+)
+
+cc_binary(
+    name = "graph_stream_pipeline",
+    srcs = ["graph_stream_pipeline.cpp"],
+    deps = _HEADER_ONLY_DEPS,
+)
+
+cc_binary(
+    name = "graph_output_stream",
+    srcs = ["graph_output_stream.cpp"],
+    deps = _HEADER_ONLY_DEPS,
+)
+
+cc_binary(
+    name = "graph_output_stream_simple",
+    srcs = ["graph_output_stream_simple.cpp"],
+    deps = _HEADER_ONLY_DEPS,
+)
+
+cc_binary(
+    name = "branch_node_simple_example",
+    srcs = ["branch_node_simple_example.cpp"],
+    deps = _HEADER_ONLY_DEPS,
+)
+
+# ============================================================================
+# Examples that link against libraries
+# ============================================================================
+
+cc_binary(
+    name = "components_example",
+    srcs = ["components_example.cpp"],
+    deps = [
+        "//src/components",
+        "//src/compose",
+        "//src/schema",
+    ],
+)
+
+cc_binary(
+    name = "flow_example",
+    srcs = ["flow_example.cpp"],
+    deps = [
+        "//src/flow",
+        "//src/compose",
+        "//src/schema",
+    ],
+)
+
+cc_binary(
+    name = "checkpoint_example",
+    srcs = ["checkpoint_example.cpp"],
+    deps = [
+        "//src/compose",
+        "//src/adk",
+        "//src/schema",
+    ],
+)
+
+cc_binary(
+    name = "interrupt_state_example",
+    srcs = ["interrupt_state_example.cpp"],
+    deps = [
+        "//src/compose",
+        "//src/adk",
+        "//src/schema",
+    ],
+)
+
+cc_binary(
+    name = "plan_execute_example",
+    srcs = ["plan_execute_example.cpp"],
+    deps = [
+        "//src/adk",
+        "//src/adk/prebuilt",
+        "//src/compose",
+        "//src/schema",
+    ],
+)
+
+cc_binary(
+    name = "stream_mode_example",
+    srcs = ["stream_mode_example.cpp"],
+    deps = [
+        "//src/compose",
+        "//src/schema",
+    ],
+)
+
+cc_binary(
+    name = "callback_example",
+    srcs = ["callback_example.cpp"],
+    deps = [
+        "//src/callbacks",
+        "//src/compose",
+        "//src/schema",
+    ],
+)
+
+cc_binary(
+    name = "branch_node_graph_example",
+    srcs = ["branch_node_graph_example.cpp"],
+    deps = [
+        "//:eino_cpp",
+    ],
+)
+
+cc_binary(
+    name = "branch_node_example",
+    srcs = ["branch_node_example.cpp"],
+    deps = _HEADER_ONLY_DEPS,
+)
+
+cc_binary(
+    name = "branch_node_complete_working_example",
+    srcs = ["branch_node_complete_working_example.cpp"],
+    deps = _HEADER_ONLY_DEPS,
+)
+
+cc_binary(
+    name = "branch_node_reference_example",
+    srcs = ["branch_node_reference_example.cpp"],
+    deps = _HEADER_ONLY_DEPS,
+)
+
+cc_binary(
+    name = "branch_node_multi_reference_example",
+    srcs = ["branch_node_multi_reference_example.cpp"],
+    deps = _HEADER_ONLY_DEPS,
+)
+
+cc_binary(
+    name = "graph_validation_demo",
+    srcs = ["graph_validation_demo.cpp"],
+    deps = _HEADER_ONLY_DEPS,
+)
+
+cc_binary(
+    name = "complete_branch_edge_example",
+    srcs = ["complete_branch_edge_example.cpp"],
+    deps = _HEADER_ONLY_DEPS,
+)
+
+cc_binary(
+    name = "complete_graph_branch_example",
+    srcs = ["complete_graph_branch_example.cpp"],
+    deps = _HEADER_ONLY_DEPS,
+)
+
+cc_binary(
+    name = "graph_stream_branch_example",
+    srcs = ["graph_stream_branch_example.cpp"],
+    deps = _HEADER_ONLY_DEPS,
+)
+
+cc_binary(
+    name = "stream_branch_concept_demo",
+    srcs = ["stream_branch_concept_demo.cpp"],
+    deps = _HEADER_ONLY_DEPS,
+)
+
+cc_binary(
+    name = "graph_json_example",
+    srcs = ["graph_json_example.cpp"],
+    deps = [
+        "//src/compose",
+        "//src/schema",
+        "//include:nlohmann_json",
+    ],
+)
+
+cc_binary(
+    name = "graph_json_simple_example",
+    srcs = ["graph_json_simple_example.cpp"],
+    deps = [
+        "//src/compose",
+        "//src/schema",
+        "//include:nlohmann_json",
+    ],
+)
+
+cc_binary(
+    name = "graph_json_minimal",
+    srcs = ["graph_json_minimal.cpp"],
+    deps = [
+        "//src/compose",
+        "//src/schema",
+        "//include:nlohmann_json",
+    ],
+)
+
+cc_binary(
+    name = "graph_json_branch_tools",
+    srcs = ["graph_json_branch_tools.cpp"],
+    deps = [
+        "//src/compose",
+        "//src/schema",
+        "//include:nlohmann_json",
+    ],
+)
+
+cc_binary(
+    name = "graph_json_complex_conditions",
+    srcs = ["graph_json_complex_conditions.cpp"],
+    deps = [
+        "//src/compose",
+        "//src/schema",
+        "//include:nlohmann_json",
+    ],
+)
+
+cc_binary(
+    name = "adk_streaming_agent_example",
+    srcs = ["adk_streaming_agent_example.cpp"],
+    deps = [
+        "//src/adk",
+        "//src/compose",
+        "//src/schema",
+    ],
+)

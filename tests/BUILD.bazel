@@ -1,0 +1,260 @@
+# Copyright 2025 CloudWeGo Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+package(default_visibility = ["//visibility:private"])
+
+# ============================================================================
+# Schema tests
+# ============================================================================
+
+cc_test(
+    name = "stream_copy_test",
+    srcs = ["schema/stream_copy_test.cpp"],
+    deps = [
+        "//src/schema",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "stream_alignment_test",
+    srcs = ["schema/stream_alignment_test.cpp"],
+    deps = [
+        "//src/schema",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "tool_jsonschema_test",
+    srcs = ["schema/tool_jsonschema_test.cpp"],
+    deps = [
+        "//src/schema",
+        "//include:nlohmann_json",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+# ============================================================================
+# Internal tests
+# ============================================================================
+
+cc_test(
+    name = "concat_test",
+    srcs = ["internal/concat_test.cpp"],
+    deps = [
+        "//src/internal",
+        "//src/schema",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "channel_test",
+    srcs = ["internal/channel_test.cpp"],
+    deps = [
+        "//include/eino:internal_hdrs",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "gmap_test",
+    srcs = ["internal/gmap_test.cpp"],
+    deps = [
+        "//include/eino:internal_hdrs",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "gslice_test",
+    srcs = ["internal/gslice_test.cpp"],
+    deps = [
+        "//include/eino:internal_hdrs",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+# ============================================================================
+# Compose validation tests
+# ============================================================================
+
+cc_test(
+    name = "compose_validation",
+    srcs = ["compose_validation.cpp"],
+    deps = [
+        "//src/compose",
+        "//src/schema",
+        "//include:nlohmann_json",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "graph_validation_test",
+    srcs = ["graph_validation_test.cpp"],
+    deps = [
+        "//src/compose",
+        "//src/schema",
+        "//include:nlohmann_json",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "graph_build_validation",
+    srcs = ["graph_build_validation.cpp"],
+    deps = [
+        "//src/compose",
+        "//src/schema",
+        "//include:nlohmann_json",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "graph_addedge_validation_test",
+    srcs = ["graph_addedge_validation_test.cpp"],
+    deps = [
+        "//src/compose",
+        "//src/schema",
+        "//include:nlohmann_json",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "graph_add_branch_edge_test",
+    srcs = ["graph_add_branch_edge_test.cpp"],
+    deps = [
+        "//src/compose",
+        "//src/schema",
+        "//include:nlohmann_json",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "graph_branch_node_multi_reference_test",
+    srcs = ["graph_branch_node_multi_reference_test.cpp"],
+    deps = [
+        "//src/compose",
+        "//src/schema",
+        "//include:nlohmann_json",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+# ============================================================================
+# Components tests
+# ============================================================================
+
+cc_test(
+    name = "components_test",
+    srcs = ["components_test.cpp"],
+    deps = [
+        "//src/components",
+        "//src/schema",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "components_simple_test",
+    srcs = ["components_simple_test.cpp"],
+    deps = [
+        "//src/components",
+        "//src/schema",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+# ============================================================================
+# ADK tests
+# ============================================================================
+
+cc_test(
+    name = "adk_validation",
+    srcs = ["adk_validation.cpp"],
+    deps = [
+        "//src/adk",
+        "//src/compose",
+        "//src/schema",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "adk_task_tool_test",
+    srcs = ["adk/task_tool_test.cpp"],
+    deps = [
+        "//src/adk",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "adk_supervisor_test",
+    srcs = ["adk/supervisor_test.cpp"],
+    deps = [
+        "//src/adk",
+        "//src/adk/prebuilt",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "adk_react_test",
+    srcs = ["adk/react_test.cpp"],
+    deps = [
+        "//src/adk",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+# ============================================================================
+# Graph runner test
+# ============================================================================
+
+cc_test(
+    name = "test_new_graph_runner",
+    srcs = ["test_new_graph_runner.cpp"],
+    deps = [
+        "//src/compose",
+        "//src/schema",
+        "//include:nlohmann_json",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)

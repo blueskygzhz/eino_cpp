@@ -18,6 +18,7 @@
 #define EINO_CPP_COMPONENTS_TOOL_H_
 
 #include "../compose/runnable.h"
+#include "../schema/tool_result.h"
 #include "../schema/types.h"
 #include <string>
 #include <vector>
@@ -57,6 +58,38 @@ public:
     virtual std::shared_ptr<compose::StreamReader<std::string>> StreamableRun(
         std::shared_ptr<compose::Context> ctx,
         const std::string& arguments_in_json,
+        const std::vector<compose::Option>& opts = std::vector<compose::Option>()) = 0;
+};
+
+// EnhancedInvokableTool is a tool that returns structured multimodal results.
+// Unlike InvokableTool, arguments arrive as a ToolArgument (not a raw JSON string)
+// and the result is a ToolResult which can carry text, images, audio, video, and file content.
+// When a tool implements both a standard and an enhanced interface, ToolsNode
+// prioritises the enhanced interface.
+// Aligned with Go: tool.EnhancedInvokableTool
+class EnhancedInvokableTool : public BaseTool {
+public:
+    virtual ~EnhancedInvokableTool() = default;
+
+    // InvokableRun executes the tool with structured arguments and returns structured results.
+    virtual std::pair<std::shared_ptr<schema::ToolResult>, std::string> InvokableRun(
+        std::shared_ptr<compose::Context> ctx,
+        const schema::ToolArgument& tool_argument,
+        const std::vector<compose::Option>& opts = std::vector<compose::Option>()) = 0;
+};
+
+// EnhancedStreamableTool is the streaming variant of EnhancedInvokableTool.
+// It streams ToolResult chunks, enabling incremental multimodal output.
+// Aligned with Go: tool.EnhancedStreamableTool
+class EnhancedStreamableTool : public BaseTool {
+public:
+    virtual ~EnhancedStreamableTool() = default;
+
+    // StreamableRun executes the tool with streaming multimodal output.
+    virtual std::pair<std::shared_ptr<compose::StreamReader<std::shared_ptr<schema::ToolResult>>>, std::string>
+    StreamableRun(
+        std::shared_ptr<compose::Context> ctx,
+        const schema::ToolArgument& tool_argument,
         const std::vector<compose::Option>& opts = std::vector<compose::Option>()) = 0;
 };
 

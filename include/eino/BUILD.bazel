@@ -1,0 +1,230 @@
+# Copyright 2025 CloudWeGo Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+package(default_visibility = ["//visibility:public"])
+
+# ============================================================================
+# eino/schema - Core data types and schema definitions
+# Aligned with Go package: github.com/cloudwego/eino/schema
+# ============================================================================
+
+cc_library(
+    name = "schema_hdrs",
+    hdrs = glob(["eino/schema/*.h"]),
+    strip_include_prefix = "",
+    deps = ["//include:nlohmann_json"],
+)
+
+# ============================================================================
+# eino/callbacks - Callback system interfaces and handlers
+# Aligned with Go package: github.com/cloudwego/eino/callbacks
+# ============================================================================
+
+cc_library(
+    name = "callbacks_hdrs",
+    hdrs = glob(["eino/callbacks/*.h"]),
+    strip_include_prefix = "",
+    deps = [":schema_hdrs"],
+)
+
+# ============================================================================
+# eino/internal - Internal utilities (not for external use)
+# Aligned with Go package: github.com/cloudwego/eino/internal
+# ============================================================================
+
+cc_library(
+    name = "internal_hdrs",
+    hdrs = glob([
+        "eino/internal/*.h",
+        "eino/internal/core/*.h",
+    ]),
+    strip_include_prefix = "",
+    deps = [":schema_hdrs"],
+)
+
+# ============================================================================
+# eino/components - Component interfaces (ChatModel, Tool, Retriever, etc.)
+# Aligned with Go package: github.com/cloudwego/eino/components
+# ============================================================================
+
+cc_library(
+    name = "components_hdrs",
+    hdrs = glob([
+        "eino/components/*.h",
+        "eino/components/prebuilt/*.h",
+        "eino/components/tool/*.h",
+    ]),
+    strip_include_prefix = "",
+    deps = [
+        ":callbacks_hdrs",
+        ":internal_core_hdrs",
+        ":schema_hdrs",
+    ],
+)
+
+# ============================================================================
+# eino/compose - Graph composition (Graph, Chain, Branch, Workflow, etc.)
+# Aligned with Go package: github.com/cloudwego/eino/compose
+# ============================================================================
+
+cc_library(
+    name = "compose_hdrs",
+    hdrs = glob(["eino/compose/*.h"]),
+    strip_include_prefix = "",
+    deps = [
+        ":callbacks_hdrs",
+        ":components_hdrs",
+        ":internal_core_hdrs",
+        ":internal_hdrs",
+        ":schema_hdrs",
+        "//include:nlohmann_json",
+    ],
+)
+
+# ============================================================================
+# eino/internal/core - Core interrupt/resume/address types
+# Aligned with Go package: github.com/cloudwego/eino/internal/core
+# ============================================================================
+
+cc_library(
+    name = "internal_core_hdrs",
+    hdrs = glob(["eino/internal/core/*.h"]),
+    strip_include_prefix = "",
+    deps = [":schema_hdrs"],
+)
+
+# ============================================================================
+# eino/flow - Pre-built flows (ReAct agent, Retriever flows, etc.)
+# Aligned with Go package: github.com/cloudwego/eino/flow
+# ============================================================================
+
+cc_library(
+    name = "flow_hdrs",
+    hdrs = glob([
+        "eino/flow/*.h",
+        "eino/flow/agent/*.h",
+        "eino/flow/indexer/*.h",
+        "eino/flow/retriever/*.h",
+    ]),
+    strip_include_prefix = "",
+    deps = [
+        ":components_hdrs",
+        ":compose_hdrs",
+        ":schema_hdrs",
+    ],
+)
+
+# ============================================================================
+# eino/adk - Agent Development Kit
+# Aligned with Go package: github.com/cloudwego/eino/adk
+# ============================================================================
+
+cc_library(
+    name = "adk_hdrs",
+    hdrs = glob([
+        "eino/adk/*.h",
+        "eino/adk/prebuilt/*.h",
+    ]),
+    strip_include_prefix = "",
+    deps = [
+        ":callbacks_hdrs",
+        ":components_hdrs",
+        ":compose_hdrs",
+        ":flow_hdrs",
+        ":internal_core_hdrs",
+        ":schema_hdrs",
+        "//include:nlohmann_json",
+    ],
+)
+
+# ============================================================================
+# eino/adk/filesystem - File system backend interface
+# Aligned with Go package: github.com/cloudwego/eino/adk/filesystem
+# ============================================================================
+
+cc_library(
+    name = "adk_filesystem_hdrs",
+    hdrs = glob(["eino/adk/filesystem/*.h"]),
+    strip_include_prefix = "",
+    deps = [
+        ":schema_hdrs",
+    ],
+)
+
+# ============================================================================
+# eino/adk/middlewares - ADK middleware ecosystem
+# Aligned with Go package: github.com/cloudwego/eino/adk/middlewares
+# ============================================================================
+
+cc_library(
+    name = "adk_middlewares_hdrs",
+    hdrs = glob([
+        "eino/adk/middlewares/*.h",
+        "eino/adk/middlewares/dynamictool/*.h",
+    ]),
+    strip_include_prefix = "",
+    deps = [
+        ":adk_filesystem_hdrs",
+        ":adk_hdrs",
+        ":components_hdrs",
+        ":schema_hdrs",
+    ],
+)
+
+# ============================================================================
+# eino/utils - Utility helpers
+# Aligned with Go package: github.com/cloudwego/eino/utils
+# ============================================================================
+
+cc_library(
+    name = "utils_hdrs",
+    hdrs = glob(["eino/utils/*.h"]),
+    strip_include_prefix = "",
+    deps = [
+        ":callbacks_hdrs",
+        ":components_hdrs",
+    ],
+)
+
+# ============================================================================
+# eino/doc.h - Top-level documentation header
+# ============================================================================
+
+cc_library(
+    name = "doc_hdr",
+    hdrs = ["eino/doc.h"],
+    strip_include_prefix = "",
+)
+
+# ============================================================================
+# All headers combined
+# ============================================================================
+
+cc_library(
+    name = "eino_hdrs",
+    deps = [
+        ":adk_filesystem_hdrs",
+        ":adk_hdrs",
+        ":adk_middlewares_hdrs",
+        ":callbacks_hdrs",
+        ":components_hdrs",
+        ":compose_hdrs",
+        ":doc_hdr",
+        ":flow_hdrs",
+        ":internal_core_hdrs",
+        ":internal_hdrs",
+        ":schema_hdrs",
+        ":utils_hdrs",
+    ],
+)

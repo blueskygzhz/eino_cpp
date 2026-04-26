@@ -1,0 +1,8 @@
+# CMake build artifacts
+build
+build_branch
+build_complete_graph
+
+# Example build artifacts
+examples/build_graph_json
+examples/build_stream_branch

@@ -17,26 +17,212 @@
 #ifndef EINO_CPP_COMPOSE_INTERRUPT_H_
 #define EINO_CPP_COMPOSE_INTERRUPT_H_
 
+#include <any>
+#include <functional>
+#include <map>
 #include <memory>
+#include <sstream>
+#include <stdexcept>
 #include <string>
 #include <vector>
-#include <map>
-#include <stdexcept>
-#include <functional>
-#include <chrono>
-#include <thread>
-#include <condition_variable>
-#include <atomic>
-#include <mutex>
+
+#include "eino/internal/core/address.h"
+#include "eino/internal/core/interrupt.h"
 
 namespace eino {
 namespace compose {
 
-// Forward declarations
-class Context;
+// Type aliases from internal/core
+// Aligned with Go: compose package re-exports from internal/core
+using Address = internal::core::Address;
+using AddressSegment = internal::core::AddressSegment;
+using AddressSegmentType = internal::core::AddressSegmentType;
+using InterruptCtx = internal::core::InterruptCtx;
+using InterruptSignal = internal::core::InterruptSignal;
+using InterruptSignalError = internal::core::InterruptSignalError;
+using ExecutionContext = internal::core::ExecutionContext;
 
-// InterruptAndRerunError indicates that graph execution should be interrupted and rerun
-// Aligns with eino compose.InterruptAndRerun error
+// Address segment type constants
+// Aligned with Go: compose.AddressSegmentNode, compose.AddressSegmentTool, compose.AddressSegmentRunnable
+static const AddressSegmentType kAddressSegmentNode = "node";
+static const AddressSegmentType kAddressSegmentTool = "tool";
+static const AddressSegmentType kAddressSegmentRunnable = "runnable";
+
+// GraphCompileOption function type for interrupt configuration
+// Aligned with Go: compose.GraphCompileOption
+struct GraphCompileOptions {
+    std::vector<std::string> interrupt_before_nodes;
+    std::vector<std::string> interrupt_after_nodes;
+};
+
+using GraphCompileOption = std::function<void(GraphCompileOptions&)>;
+
+// WithInterruptBeforeNodes instructs to interrupt before the given nodes.
+// Aligned with Go: compose.WithInterruptBeforeNodes()
+inline GraphCompileOption WithInterruptBeforeNodes(const std::vector<std::string>& nodes) {
+    return [nodes](GraphCompileOptions& options) {
+        options.interrupt_before_nodes = nodes;
+    };
+}
+
+// WithInterruptAfterNodes instructs to interrupt after the given nodes.
+// Aligned with Go: compose.WithInterruptAfterNodes()
+inline GraphCompileOption WithInterruptAfterNodes(const std::vector<std::string>& nodes) {
+    return [nodes](GraphCompileOptions& options) {
+        options.interrupt_after_nodes = nodes;
+    };
+}
+
+// InterruptInfo aggregates interrupt metadata for composite or nested runs.
+// Aligned with Go: compose.InterruptInfo
+struct ComposeInterruptInfo {
+    std::any state;
+    std::vector<std::string> before_nodes;
+    std::vector<std::string> after_nodes;
+    std::vector<std::string> rerun_nodes;
+    std::map<std::string, std::any> rerun_nodes_extra;
+    std::map<std::string, ComposeInterruptInfo> sub_graphs;
+    std::vector<std::shared_ptr<InterruptCtx>> interrupt_contexts;
+
+    ComposeInterruptInfo() = default;
+};
+
+// InterruptError wraps interrupt information.
+// Aligned with Go: compose.interruptError
+class InterruptError : public std::runtime_error {
+public:
+    explicit InterruptError(std::shared_ptr<ComposeInterruptInfo> info)
+        : std::runtime_error(info ? "interrupt happened" : "interrupt happened (no info)"),
+          info_(std::move(info)) {}
+
+    std::shared_ptr<ComposeInterruptInfo> GetInfo() const { return info_; }
+
+    std::vector<std::shared_ptr<InterruptCtx>> GetInterruptContexts() const {
+        if (info_) return info_->interrupt_contexts;
+        return {};
+    }
+
+private:
+    std::shared_ptr<ComposeInterruptInfo> info_;
+};
+
+// SubGraphInterruptError for nested graph interruptions.
+// Aligned with Go: compose.subGraphInterruptError
+class SubGraphInterruptError : public std::runtime_error {
+public:
+    SubGraphInterruptError(std::shared_ptr<ComposeInterruptInfo> info,
+                           std::any checkpoint,
+                           std::shared_ptr<InterruptSignal> signal = nullptr)
+        : std::runtime_error("sub-graph interrupt"),
+          info_(std::move(info)),
+          checkpoint_(std::move(checkpoint)),
+          signal_(std::move(signal)) {}
+
+    std::shared_ptr<ComposeInterruptInfo> GetInfo() const { return info_; }
+    const std::any& GetCheckpoint() const { return checkpoint_; }
+    std::shared_ptr<InterruptSignal> GetSignal() const { return signal_; }
+
+private:
+    std::shared_ptr<ComposeInterruptInfo> info_;
+    std::any checkpoint_;
+    std::shared_ptr<InterruptSignal> signal_;
+};
+
+// Interrupt creates a special error that signals the execution engine to interrupt
+// the current run at the component's specific address and save a checkpoint.
+// Aligned with Go: compose.Interrupt()
+inline InterruptSignalError Interrupt(const ExecutionContext& ctx, const std::any& info) {
+    auto signal = internal::core::Interrupt(ctx, info, std::any{});
+    return InterruptSignalError(signal);
+}
+
+// StatefulInterrupt creates a special error with persisted state.
+// Aligned with Go: compose.StatefulInterrupt()
+inline InterruptSignalError StatefulInterrupt(const ExecutionContext& ctx,
+                                               const std::any& info,
+                                               const std::any& state) {
+    auto signal = internal::core::Interrupt(ctx, info, state);
+    return InterruptSignalError(signal);
+}
+
+// CompositeInterrupt creates a special error that signals a composite interruption.
+// Designed for "composite" nodes (like ToolsNode) that manage multiple, independent,
+// interruptible sub-processes.
+// Aligned with Go: compose.CompositeInterrupt()
+inline InterruptSignalError CompositeInterrupt(
+    const ExecutionContext& ctx,
+    const std::any& info,
+    const std::any& state,
+    const std::vector<std::shared_ptr<InterruptSignal>>& sub_errors = {}) {
+
+    if (sub_errors.empty()) {
+        auto signal = internal::core::Interrupt(ctx, info, state);
+        return InterruptSignalError(signal);
+    }
+
+    auto signal = internal::core::Interrupt(ctx, info, state, sub_errors);
+    return InterruptSignalError(signal);
+}
+
+// IsInterruptRerunError reports whether the error represents an interrupt-and-rerun
+// and returns any attached info.
+// Aligned with Go: compose.IsInterruptRerunError()
+inline std::pair<std::any, bool> IsInterruptRerunError(const std::exception_ptr& eptr) {
+    if (!eptr) return {std::any{}, false};
+    try {
+        std::rethrow_exception(eptr);
+    } catch (const InterruptSignalError& e) {
+        auto signal = e.GetSignal();
+        if (signal) {
+            return {signal->interrupt_info.info, true};
+        }
+        return {std::any{}, true};
+    } catch (const InterruptError& e) {
+        return {std::any{}, true};
+    } catch (...) {
+        return {std::any{}, false};
+    }
+}
+
+// ExtractInterruptInfo extracts ComposeInterruptInfo from an error if present.
+// Aligned with Go: compose.ExtractInterruptInfo()
+inline std::pair<std::shared_ptr<ComposeInterruptInfo>, bool>
+ExtractInterruptInfo(const std::exception_ptr& eptr) {
+    if (!eptr) return {nullptr, false};
+    try {
+        std::rethrow_exception(eptr);
+    } catch (const InterruptError& e) {
+        return {e.GetInfo(), true};
+    } catch (const SubGraphInterruptError& e) {
+        return {e.GetInfo(), true};
+    } catch (...) {
+        return {nullptr, false};
+    }
+}
+
+// IsInterruptError checks if an exception is any kind of interrupt error.
+// Aligned with Go: compose.isInterruptError()
+inline bool IsInterruptError(const std::exception_ptr& eptr) {
+    if (!eptr) return false;
+    try {
+        std::rethrow_exception(eptr);
+    } catch (const InterruptSignalError&) {
+        return true;
+    } catch (const InterruptError&) {
+        return true;
+    } catch (const SubGraphInterruptError&) {
+        return true;
+    } catch (...) {
+        return false;
+    }
+}
+
+// ========================================================================
+// Legacy API (kept for backward compatibility)
+// Deprecated: prefer Interrupt/StatefulInterrupt/CompositeInterrupt
+// ========================================================================
+
+// Deprecated: InterruptAndRerunError - use Interrupt() instead
 class InterruptAndRerunError : public std::runtime_error {
 public:
     explicit InterruptAndRerunError(const std::string& message, const std::any& extra = {})
@@ -48,234 +234,18 @@ private:
     std::any extra_;
 };
 
-// InterruptInfo contains information about where the graph was interrupted
-// Aligns with eino compose.InterruptInfo structure
-struct InterruptInfo {
-    std::any state;  // Current state at interruption point
-    std::vector<std::string> before_nodes;      // Nodes to interrupt before execution
-    std::vector<std::string> after_nodes;       // Nodes to interrupt after execution
-    std::vector<std::string> rerun_nodes;       // Nodes to rerun on resume
-    std::map<std::string, std::any> rerun_nodes_extra;  // Extra data for rerun nodes
-    std::map<std::string, InterruptInfo> sub_graphs;    // Info for nested subgraphs
-
-    InterruptInfo() = default;
-};
-
-// InterruptError wraps interrupt information
-class InterruptError : public std::runtime_error {
-public:
-    explicit InterruptError(const std::string& message, const std::shared_ptr<InterruptInfo>& info)
-        : std::runtime_error(message), info_(info) {}
-
-    std::shared_ptr<InterruptInfo> GetInfo() const { return info_; }
-
-private:
-    std::shared_ptr<InterruptInfo> info_;
-};
-
-// SubGraphInterruptError for nested graph interruptions
-class SubGraphInterruptError : public InterruptError {
-public:
-    SubGraphInterruptError(const std::string& message, 
-                          const std::shared_ptr<InterruptInfo>& info,
-                          const std::any& checkpoint)
-        : InterruptError(message, info), checkpoint_(checkpoint) {}
-
-    const std::any& GetCheckpoint() const { return checkpoint_; }
-
-private:
-    std::any checkpoint_;
-};
-
-// Helper functions to extract interrupt information
-inline bool IsInterruptError(const std::exception_ptr& eptr) {
-    if (!eptr) return false;
-    try {
-        std::rethrow_exception(eptr);
-    } catch (const InterruptError&) {
-        return true;
-    } catch (const SubGraphInterruptError&) {
-        return true;
-    } catch (const InterruptAndRerunError&) {
-        return true;
-    } catch (...) {
-        return false;
-    }
+// Deprecated: NewInterruptAndRerunErr - use Interrupt() instead
+// Aligned with Go: compose.NewInterruptAndRerunErr()
+inline InterruptSignalError NewInterruptAndRerunErr(const std::any& extra) {
+    internal::core::InterruptInfo info;
+    info.info = extra;
+    info.is_root_cause = true;
+    auto signal = std::make_shared<InterruptSignal>();
+    signal->interrupt_info = info;
+    return InterruptSignalError(signal);
 }
 
-inline std::shared_ptr<InterruptInfo> ExtractInterruptInfo(const std::exception_ptr& eptr) {
-    if (!eptr) return nullptr;
-    try {
-        std::rethrow_exception(eptr);
-    } catch (const InterruptError& e) {
-        return e.GetInfo();
-    } catch (const SubGraphInterruptError& e) {
-        return e.GetInfo();
-    } catch (...) {
-        return nullptr;
-    }
-}
+}  // namespace compose
+}  // namespace eino
 
-// GraphInterruptOptions for interrupt configuration
-struct GraphInterruptOptions {
-    // Timeout before forcing an interrupt (0 = no timeout)
-    std::chrono::milliseconds timeout{0};
-
-    // Flag to enable interrupt support
-    bool enable_interrupt = true;
-
-    GraphInterruptOptions() = default;
-};
-
-// InterruptHandle provides interface to interrupt graph execution
-class InterruptHandle {
-public:
-    InterruptHandle() = default;
-    virtual ~InterruptHandle() = default;
-
-    // Interrupt triggers an interrupt with optional timeout
-    virtual void Interrupt(const std::shared_ptr<GraphInterruptOptions>& opts = nullptr) = 0;
-
-    // IsInterrupted returns true if interrupt was triggered
-    virtual bool IsInterrupted() const = 0;
-
-    // WaitForInterrupt blocks until interrupt signal is received
-    virtual bool WaitForInterrupt(const std::chrono::milliseconds& timeout = std::chrono::milliseconds(0)) = 0;
-
-private:
-    InterruptHandle(const InterruptHandle&) = delete;
-    InterruptHandle& operator=(const InterruptHandle&) = delete;
-};
-
-// Default implementation of InterruptHandle
-class DefaultInterruptHandle : public InterruptHandle {
-public:
-    DefaultInterruptHandle() : interrupted_(false) {}
-
-    void Interrupt(const std::shared_ptr<GraphInterruptOptions>& opts = nullptr) override {
-        {
-            std::lock_guard<std::mutex> lock(mutex_);
-            interrupted_ = true;
-            if (opts && opts->timeout.count() > 0) {
-                timeout_ms_ = opts->timeout.count();
-            }
-        }
-        cv_.notify_all();
-    }
-
-    bool IsInterrupted() const override {
-        std::lock_guard<std::mutex> lock(mutex_);
-        return interrupted_;
-    }
-
-    bool WaitForInterrupt(const std::chrono::milliseconds& timeout = std::chrono::milliseconds(0)) override {
-        std::unique_lock<std::mutex> lock(mutex_);
-        if (interrupted_) return true;
-        
-        if (timeout.count() == 0) {
-            cv_.wait(lock, [this] { return interrupted_; });
-            return true;
-        } else {
-            return cv_.wait_for(lock, timeout, [this] { return interrupted_; });
-        }
-    }
-
-private:
-    mutable std::mutex mutex_;
-    mutable std::condition_variable cv_;
-    std::atomic<bool> interrupted_;
-    long long timeout_ms_{0};
-};
-
-// GraphInterruptContext wraps interrupt capabilities into Context
-class GraphInterruptContext {
-public:
-    explicit GraphInterruptContext(std::shared_ptr<Context> parent_ctx)
-        : parent_context_(parent_ctx), 
-          interrupt_handle_(std::make_shared<DefaultInterruptHandle>()) {}
-
-    std::shared_ptr<Context> GetParentContext() const { return parent_context_; }
-
-    std::shared_ptr<InterruptHandle> GetInterruptHandle() const { return interrupt_handle_; }
-
-    void SetInterruptHandle(std::shared_ptr<InterruptHandle> handle) {
-        if (handle) {
-            interrupt_handle_ = handle;
-        }
-    }
-
-    // Check if execution should be interrupted
-    bool ShouldInterrupt() const {
-        return interrupt_handle_ && interrupt_handle_->IsInterrupted();
-    }
-
-private:
-    std::shared_ptr<Context> parent_context_;
-    std::shared_ptr<InterruptHandle> interrupt_handle_;
-};
-
-// WithGraphInterrupt creates a context with interrupt support
-inline std::pair<std::shared_ptr<Context>, std::function<void()>> 
-WithGraphInterrupt(std::shared_ptr<Context> parent_ctx = nullptr) {
-    if (!parent_ctx) {
-        parent_ctx = Context::Background();
-    }
-    
-    auto interrupt_ctx = std::make_shared<GraphInterruptContext>(parent_ctx);
-    auto interrupt_handle = interrupt_ctx->GetInterruptHandle();
-    
-    auto interrupt_fn = [interrupt_handle]() {
-        if (interrupt_handle) {
-            interrupt_handle->Interrupt();
-        }
-    };
-    
-    return {std::static_pointer_cast<Context>(parent_ctx), interrupt_fn};
-}
-
-// WithGraphInterruptTimeout sets a timeout for interrupt
-inline std::function<void()> 
-WithGraphInterruptTimeout(std::shared_ptr<InterruptHandle> handle,
-                         const std::chrono::milliseconds& timeout) {
-    auto opts = std::make_shared<GraphInterruptOptions>();
-    opts->timeout = timeout;
-    
-    return [handle, opts]() {
-        if (handle) {
-            handle->Interrupt(opts);
-        }
-    };
-}
-
-// Helper to check if error is interrupt and extract info
-inline std::pair<std::shared_ptr<InterruptInfo>, bool> 
-TryExtractInterruptInfo(const std::exception_ptr& eptr) {
-    auto info = ExtractInterruptInfo(eptr);
-    return {info, info != nullptr};
-}
-
-// Interrupt builder for fluent API
-class InterruptBuilder {
-public:
-    InterruptBuilder() : options_(std::make_shared<GraphInterruptOptions>()) {}
-
-    InterruptBuilder& WithTimeout(const std::chrono::milliseconds& timeout) {
-        options_->timeout = timeout;
-        return *this;
-    }
-
-    InterruptBuilder& EnableInterrupt(bool enable = true) {
-        options_->enable_interrupt = enable;
-        return *this;
-    }
-
-    std::shared_ptr<GraphInterruptOptions> Build() const { return options_; }
-
-private:
-    std::shared_ptr<GraphInterruptOptions> options_;
-};
-
-} // namespace compose
-} // namespace eino
-
-#endif // EINO_CPP_COMPOSE_INTERRUPT_H_
+#endif  // EINO_CPP_COMPOSE_INTERRUPT_H_

@@ -1,0 +1,13 @@
+module(
+    name = "eino_cpp",
+    version = "1.0.0",
+)
+
+# C++ rules
+bazel_dep(name = "rules_cc", version = "0.0.17")
+
+# nlohmann/json
+bazel_dep(name = "nlohmann_json", version = "3.11.3")
+
+# GoogleTest for testing
+bazel_dep(name = "googletest", version = "1.15.2")

@@ -1,0 +1,38 @@
+# Copyright 2025 CloudWeGo Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+package(default_visibility = ["//visibility:public"])
+
+# ============================================================================
+# internal - Internal utilities (concat, merge, serialization, etc.)
+# Aligned with Go package: github.com/cloudwego/eino/internal
+#
+# Go source files:
+#   internal/channel.go, internal/concat.go, internal/merge.go, etc.
+# ============================================================================
+
+cc_library(
+    name = "internal",
+    srcs = [
+        "concat.cpp",
+        "core/address.cpp",
+        "merge.cpp",
+        "serialization.cpp",
+    ],
+    deps = [
+        "//include/eino:internal_hdrs",
+        "//include/eino:internal_core_hdrs",
+        "//src/schema",
+    ],
+)
